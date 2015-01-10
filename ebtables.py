@@ -3,7 +3,7 @@ import os
 import sys
 from cffi import FFI
 
-__version__ = '0.2.0-dev'
+__version__ = '0.1.1'
 
 EBTABLES_LIBRARY_PATH = os.getenv('EBTABLES_LIBRARY_PATH') or '/lib/ebtables'
 
