@@ -46,14 +46,11 @@ ffi.cdef(
 
     extern int ebt_silent;
 
-    extern char *optarg;
-    extern int optind;
-
     int do_command(int argc, char *argv[], int exec_style,
     struct ebt_u_replace *replace_);
     int ebt_get_kernel_table(struct ebt_u_replace *replace, int init);
-    void ebt_early_init_once(void);
     void ebt_deliver_table(struct ebt_u_replace *u_repl);
+    void ebt_early_init_once(void);
 
     char *strcpy(char *dest, const char *src);
     """)
@@ -61,18 +58,12 @@ ffi.cdef(
 _ebtc = ffi.verify(
     """
     #include <stdio.h>
+    #include <unistd.h>
     #include <sys/types.h>
     #include <sys/socket.h>
     #include <netinet/in.h>
     #include "include/ebtables.h"
     #include "include/ebtables_u.h"
-
-    extern char ebt_errormsg[ERRORMSG_MAXLEN];
-
-    extern int ebt_silent;
-
-    extern char *optarg;
-    extern int optind;
 
     void ebt_early_init_once(void);
     """,
