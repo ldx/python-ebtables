@@ -1,6 +1,8 @@
 /build/
 /dist/
 
+/README.rst
+
 __pycache__/
 *.egg-info/
 
