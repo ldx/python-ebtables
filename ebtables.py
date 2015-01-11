@@ -1,4 +1,5 @@
 import fcntl
+import hashlib
 import os
 import sys
 from cffi import FFI
@@ -28,8 +29,7 @@ def _get_libraries():
 
 ffi = FFI()
 
-ffi.cdef(
-    """
+_cdef = """
     #define EBT_TABLE_MAXNAMELEN 32
 
     #define ERRORMSG_MAXLEN 128
@@ -50,13 +50,13 @@ ffi.cdef(
     struct ebt_u_replace *replace_);
     int ebt_get_kernel_table(struct ebt_u_replace *replace, int init);
     void ebt_deliver_table(struct ebt_u_replace *u_repl);
+    void ebt_cleanup_replace(struct ebt_u_replace *replace);
     void ebt_early_init_once(void);
 
     char *strcpy(char *dest, const char *src);
-    """)
-
-_ebtc = ffi.verify(
     """
+
+_verify = """
     #include <stdio.h>
     #include <unistd.h>
     #include <sys/types.h>
@@ -66,12 +66,18 @@ _ebtc = ffi.verify(
     #include "include/ebtables_u.h"
 
     void ebt_early_init_once(void);
-    """,
-    libraries=_get_libraries(),
-    include_dirs=[os.path.dirname(os.path.abspath(__file__))],
-    library_dirs=[EBTABLES_LIBRARY_PATH],
-    runtime_library_dirs=[EBTABLES_LIBRARY_PATH],
-    modulename='ebtables_cffi')
+    """
+
+_hash = hashlib.sha1('\0'.join([_cdef, _verify])).hexdigest()
+
+ffi.cdef(_cdef)
+
+_ebtc = ffi.verify(_verify,
+                   libraries=_get_libraries(),
+                   include_dirs=[os.path.dirname(os.path.abspath(__file__))],
+                   library_dirs=[EBTABLES_LIBRARY_PATH],
+                   runtime_library_dirs=[EBTABLES_LIBRARY_PATH],
+                   modulename='ebtables_%s' % _hash)
 
 _ebtc.ebt_silent = 1
 _ebtc.ebt_errormsg[0] = '\0'
