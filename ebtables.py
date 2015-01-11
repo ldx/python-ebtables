@@ -46,6 +46,9 @@ _cdef = """
 
     extern int ebt_silent;
 
+    extern char *optarg;
+    extern int optind;
+
     int do_command(int argc, char *argv[], int exec_style,
     struct ebt_u_replace *replace_);
     int ebt_get_kernel_table(struct ebt_u_replace *replace, int init);
