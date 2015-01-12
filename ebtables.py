@@ -82,6 +82,8 @@ _ebtc = ffi.verify(_verify,
                    runtime_library_dirs=[EBTABLES_LIBRARY_PATH],
                    modulename='ebtables_%s' % _hash)
 
+_ebtc.ebt_early_init_once()
+
 _ebtc.ebt_silent = 1
 _ebtc.ebt_errormsg[0] = '\0'
 
@@ -90,24 +92,6 @@ def _get_errormsg():
     msg = ffi.string(_ebtc.ebt_errormsg)
     _ebtc.ebt_errormsg[0] = '\0'
     return msg
-
-_tables = {}
-
-
-def _populate_table(t):
-    if not _tables:
-        _ebtc.ebt_early_init_once()
-    rpl = ffi.new('struct ebt_u_replace *')
-    _ebtc.strcpy(rpl.name, ffi.new('char[]', t))
-    if _ebtc.ebt_get_kernel_table(rpl, 0) != 0:
-        raise EbtablesException('ebt_get_kernel_table() failed %s' %
-                                _get_errormsg())
-    _tables[t] = rpl  # ffi.new('struct ebt_u_replace *')
-
-
-def _populate_tables():
-    for t in ['filter', 'nat', 'broute']:
-        _populate_table(t)
 
 
 def _do_command(rpl, args):
@@ -173,12 +157,13 @@ def cmd(table, params):
         args_list.append(ffi.new('char []', p))
     args = ffi.new('char *[]', args_list)
 
-    if table not in _tables:
-        _populate_table(table)
-    rpl = _tables[table]
-    # _ebtc.strcpy(rpl.name, ffi.new('char[]', table))
+    # Allocate and set up an ebt_u_replace struct.
+    rpl = ffi.new('struct ebt_u_replace *')
+    _ebtc.strcpy(rpl.name, ffi.new('char[]', table))
+    if _ebtc.ebt_get_kernel_table(rpl, 0) != 0:
+        raise EbtablesException('ebt_get_kernel_table() failed %s' %
+                                _get_errormsg())
 
-    return _cmd(rpl, args)
 
 
 def filter(params):
