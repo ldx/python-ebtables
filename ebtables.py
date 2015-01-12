@@ -46,6 +46,7 @@ _cdef = """
         struct ebt_u_entries **chains;
         struct ebt_cntchanges *cc;
         unsigned int flags;
+        char command;
         ...;
     };
 
@@ -64,6 +65,7 @@ _cdef = """
     void ebt_deliver_table(struct ebt_u_replace *u_repl);
     void ebt_cleanup_replace(struct ebt_u_replace *replace);
     void ebt_early_init_once(void);
+    void ebt_reinit_extensions();
 
     char *strcpy(char *dest, const char *src);
     void free(void *ptr);
@@ -110,6 +112,11 @@ def _do_command(rpl, args):
     _get_errormsg()
     rc = _ebtc.do_command(len(args), args, _ebtc.EXEC_STYLE_DAEMON, rpl)
     err = _get_errormsg()
+
+    if rc == 0 and rpl.command in ['A', 'I']:
+        # This needs to be called after an add.
+        _ebtc.ebt_reinit_extensions()
+
     if rc == 0 and not err:
         _ebtc.ebt_deliver_table(rpl)
         err = _get_errormsg()
