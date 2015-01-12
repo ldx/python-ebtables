@@ -114,7 +114,7 @@ def _do_command(rpl, args):
     rc = _ebtc.do_command(len(args), args, _ebtc.EXEC_STYLE_DAEMON, rpl)
     err = _get_errormsg()
 
-    if rc == 0 and rpl.command in ['A', 'I']:
+    if rc == 0 and rpl.command in ['A', 'I', 'D']:
         # This needs to be called after an add.
         _ebtc.ebt_reinit_extensions()
 
