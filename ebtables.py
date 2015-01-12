@@ -103,13 +103,14 @@ _ebtc.ebt_errormsg[0] = '\0'
 
 
 def _get_errormsg():
+    # Read last error message, and reset ebt_errormsg.
     msg = ffi.string(_ebtc.ebt_errormsg)
     _ebtc.ebt_errormsg[0] = '\0'
     return msg
 
 
 def _do_command(rpl, args):
-    _get_errormsg()
+    _get_errormsg()  # Make sure there's no unread error.
     rc = _ebtc.do_command(len(args), args, _ebtc.EXEC_STYLE_DAEMON, rpl)
     err = _get_errormsg()
 
@@ -118,12 +119,12 @@ def _do_command(rpl, args):
         _ebtc.ebt_reinit_extensions()
 
     if rc == 0 and not err:
-        _ebtc.ebt_deliver_table(rpl)
+        _ebtc.ebt_deliver_table(rpl)  # Commit result.
         err = _get_errormsg()
         if err:
             rc = -1
             err = 'ebt_deliver_table() failed %s' % err
-        # _ebtc.ebt_cleanup_replace(rpl)
+
     return rc, err
 
 
