@@ -37,8 +37,15 @@ _cdef = """
     #define EXEC_STYLE_PRG ...
     #define EXEC_STYLE_DAEMON ...
 
+    /*
+     * Fields are not in order, but CFFI will take care of it since we use
+     * '...' at the end.
+     */
     struct ebt_u_replace {
         char name[EBT_TABLE_MAXNAMELEN];
+        struct ebt_u_entries **chains;
+        struct ebt_cntchanges *cc;
+        unsigned int flags;
         ...;
     };
 
@@ -49,6 +56,8 @@ _cdef = """
     extern char *optarg;
     extern int optind;
 
+    unsigned int OPT_KERNELDATA = 0x800;
+
     int do_command(int argc, char *argv[], int exec_style,
     struct ebt_u_replace *replace_);
     int ebt_get_kernel_table(struct ebt_u_replace *replace, int init);
@@ -57,6 +66,7 @@ _cdef = """
     void ebt_early_init_once(void);
 
     char *strcpy(char *dest, const char *src);
+    void free(void *ptr);
     """
 
 _verify = """
@@ -67,6 +77,8 @@ _verify = """
     #include <netinet/in.h>
     #include "include/ebtables.h"
     #include "include/ebtables_u.h"
+
+    unsigned int OPT_KERNELDATA = 0x800;
 
     void ebt_early_init_once(void);
     """
@@ -145,6 +157,18 @@ def _cmd(rpl, args):
         os.close(stdout)
 
 
+def _free_replace(rc, rpl):
+    _ebtc.ebt_cleanup_replace(rpl)
+    # These two fields are not freed by ebtables.
+    if rpl.chains:
+        _ebtc.free(rpl.chains)
+        rpl.chains = ffi.NULL
+    if rpl.cc:
+        _ebtc.free(rpl.cc)
+        rpl.cc = ffi.NULL
+    rpl.flags &= ~_ebtc.OPT_KERNELDATA
+
+
 def cmd(table, params):
     if isinstance(params, str):
         params = params.split()
@@ -163,7 +187,12 @@ def cmd(table, params):
     if _ebtc.ebt_get_kernel_table(rpl, 0) != 0:
         raise EbtablesException('ebt_get_kernel_table() failed %s' %
                                 _get_errormsg())
+    rpl.flags |= _ebtc.OPT_KERNELDATA
 
+    result = _cmd(rpl, args)
+
+    _free_replace(result[0], rpl)
+    return result
 
 
 def filter(params):
