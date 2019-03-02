@@ -4,7 +4,7 @@ import os
 import sys
 from cffi import FFI
 
-__version__ = '0.3.0.dev0'
+__version__ = '0.3.0.dev1'
 
 EBTABLES_LIBRARY_PATH = os.getenv('EBTABLES_LIBRARY_PATH') or '/lib/ebtables'
 
@@ -85,7 +85,8 @@ _verify = """
     void ebt_early_init_once(void);
     """
 
-_hash = hashlib.sha1('\0'.join([_cdef, _verify])).hexdigest()
+# Changed this to be python3 compatible which requires string encoding
+_hash = hashlib.sha1(_cdef.encode('utf-8') + _verify.encode('utf-8')).hexdigest()
 
 ffi.cdef(_cdef)
 
@@ -99,7 +100,8 @@ _ebtc = ffi.verify(_verify,
 _ebtc.ebt_early_init_once()
 
 _ebtc.ebt_silent = 1
-_ebtc.ebt_errormsg[0] = '\0'
+# Changed this to be python3 compatible which requires string encoding
+_ebtc.ebt_errormsg[0] = '\0'.encode("ascii")
 
 
 def _get_errormsg():
